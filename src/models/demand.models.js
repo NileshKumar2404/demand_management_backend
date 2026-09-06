@@ -1,39 +1,50 @@
-import mongoose from 'mongoose';
+import mongoose from 'mongoose'
 
 const demandSchema = new mongoose.Schema({
     demandNumber: {
         type: String,
-        unique: true
+        unique: true,
+        index: true,
+        immutable: true
     },
     title: {
         type: String,
         required: true,
-        trim: true
+        trim: true,
+        minlength: 2,
+        maxlength: 200
     },
     description: {
         type: String,
         required: true,
-        trim: true
+        trim: true,
+        minlength: 2,
+        maxlength: 5000
     },
     department: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Department',
-        required: true
+        required: true,
+        index: true
     },
     priority: {
         type: String,
         enum: ['P1', 'P2', 'P3', 'P4', 'P5'],
-        required: true
+        required: true,
+        index: true
     },
     createdBy: {
         type: String,
         required: true,
-        trim: true
+        trim: true,
+        minlength: 2,
+        maxlength: 100
     },
     assignedTo: {
         type: String,
         default: null,
-        trim: true
+        trim: true,
+        maxlength: 100
     },
     assignedAt: {
         type: Date,
@@ -57,7 +68,8 @@ const demandSchema = new mongoose.Schema({
     },
     dueDate: {
         type: Date,
-        required: true
+        required: true,
+        index: true
     },
     status: {
         type: String,
@@ -70,25 +82,43 @@ const demandSchema = new mongoose.Schema({
             'COMPLETED',
             'CLOSED'
         ],
-        default: 'SUBMITTED'
+        default: 'SUBMITTED',
+        index: true
     },
     onHoldReason: {
         type: String,
-        default: null
+        default: null,
+        trim: true,
+        maxlength: 2000
     },
     delayReason: {
         type: String,
-        default: null
+        default: null,
+        trim: true,
+        maxlength: 200
     },
     delayDescription: {
         type: String,
         default: null,
+        trim: true,
+        maxlength: 2000
     },
-
     isOverdue: {
         type: Boolean,
         default: false,
-    },
-}, { timestamps: true });
+        index: true
+    }
+}, { timestamps: true })
 
-export const Demand = mongoose.model('Demand', demandSchema);
+demandSchema.index({ department: 1, status: 1, createdAt: -1 })
+demandSchema.index({ department: 1, dueDate: 1 })
+demandSchema.index({ department: 1, priority: 1, createdAt: -1 })
+
+demandSchema.set('toJSON', {
+    transform: (_doc, ret) => {
+        delete ret.__v
+        return ret
+    }
+})
+
+export const Demand = mongoose.model('Demand', demandSchema)
