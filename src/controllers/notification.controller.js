@@ -63,7 +63,7 @@ export const markNotificationRead = asyncHandler(async (req, res) => {
 })
 
 export const markAllNotificationsRead = asyncHandler(async (req, res) => {
-    const { department } = req.body
+    const { department } = req.body || {}
     const filter = { isRead: false }
 
     if (department) {
