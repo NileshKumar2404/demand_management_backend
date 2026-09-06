@@ -4,17 +4,18 @@ dotenv.config({
     path: './.env'
 })
 
-const { default: app } = await import('./app.js');
+const { default: app } = await import('./app.js')
 const { default: connectDB } = await import('./db/index.js')
 
-connectDB()
-.then(async() => {
-    app.listen(process.env.PORT || 3000, () => {
-        console.log(`Server is running on PORT: ${process.env.PORT || 3000}`);
-    })
-})
+const PORT = Number(process.env.PORT) || 3000
 
-.catch((error) => {
-    console.log(`!!! MongoDB connection failed: ${error}`);
-    
-})
+try {
+    await connectDB()
+
+    app.listen(PORT, () => {
+        console.log(`Server is running on PORT: ${PORT}`)
+    })
+} catch (error) {
+    console.error(`!!! MongoDB connection failed: ${error}`)
+    process.exit(1)
+}
