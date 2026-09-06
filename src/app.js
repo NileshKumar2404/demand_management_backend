@@ -5,6 +5,7 @@ import morgan from 'morgan'
 import departmentRoutes from './routes/department.routes.js'
 import demandRoutes from './routes/demand.routes.js'
 import notificationRoutes from './routes/notification.routes.js'
+import adminRoutes from './routes/admin.routes.js'
 
 const app = express()
 
@@ -33,6 +34,7 @@ app.get('/health', (req, res) => {
 app.use('/api/departments', departmentRoutes)
 app.use('/api/demands', demandRoutes)
 app.use('/api/notifications', notificationRoutes)
+app.use('/api/admin', adminRoutes)
 
 app.use((req, res) => {
     res.status(404).json({
