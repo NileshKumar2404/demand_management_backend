@@ -14,9 +14,7 @@ export const seedDefaultDepartments = asyncHandler(async (req, res) => {
     const results = []
 
     for (const name of DEFAULT_DEPARTMENTS) {
-        const existing = await Department.findOne({
-            name: { $regex: `^${name.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\$&')}$`, $options: 'i' }
-        })
+        const existing = await Department.findOne({ name })
 
         if (existing) {
             if (!existing.isActive) {
@@ -27,7 +25,10 @@ export const seedDefaultDepartments = asyncHandler(async (req, res) => {
             continue
         }
 
-        results.push(await Department.create({ name }))
+        results.push(await Department.create({
+            name,
+            isActive: true
+        }))
     }
 
     return res.status(200).json(
