@@ -7,11 +7,11 @@ import { ApiResponse } from '../utils/ApiResponse.js'
 import { ApiError } from '../utils/ApiError.js'
 import { calculateDate } from '../utils/priority.js'
 import { generateDemandNumber } from '../utils/demandNumber.js'
-import { createHistory, getSlaState, isDemandOverdue } from '../services/demand.service.js'
+import { createHistory, getSlaState } from '../services/demand.service.js'
 import { createNotification } from '../services/notification.service.js'
 
 const VALID_PRIORITIES = new Set(['P1', 'P2', 'P3', 'P4', 'P5'])
-const TERMINAL_STATUSES = new Set(['COMPLETED', 'CLOSED'])
+const VALID_STATUSES = new Set(['SUBMITTED', 'ASSIGNED', 'ACCEPTED', 'IN_PROGRESS', 'ON_HOLD', 'COMPLETED', 'CLOSED'])
 
 const ensureObjectId = (value, fieldName) => {
     if (!mongoose.isValidObjectId(value)) {
@@ -115,7 +115,7 @@ export const createDemand = asyncHandler(async (req, res) => {
         message: `${demandNumber} has been created for ${departmentDoc.name}.`,
         type: 'DEMAND_CREATED',
         demand: demand._id,
-        department: department._id || department
+        department
     })
 
     const result = await Demand.findById(demand._id).populate('department', 'name')
@@ -151,8 +151,7 @@ export const getDemands = asyncHandler(async (req, res) => {
 
     if (status) {
         const statuses = String(status).split(',').map((value) => value.trim()).filter(Boolean)
-        const allowed = ['SUBMITTED', 'ASSIGNED', 'ACCEPTED', 'IN_PROGRESS', 'ON_HOLD', 'COMPLETED', 'CLOSED']
-        if (statuses.some((value) => !allowed.includes(value))) {
+        if (statuses.some((value) => !VALID_STATUSES.has(value))) {
             throw new ApiError(400, 'Invalid status filter.')
         }
         filter.status = statuses.length === 1 ? statuses[0] : { $in: statuses }
@@ -176,13 +175,15 @@ export const getDemands = asyncHandler(async (req, res) => {
 
     if (search) {
         const searchTerm = String(search).trim()
-        filter.$or = [
-            { demandNumber: { $regex: searchTerm, $options: 'i' } },
-            { title: { $regex: searchTerm, $options: 'i' } },
-            { description: { $regex: searchTerm, $options: 'i' } },
-            { createdBy: { $regex: searchTerm, $options: 'i' } },
-            { assignedTo: { $regex: searchTerm, $options: 'i' } }
-        ]
+        if (searchTerm) {
+            filter.$or = [
+                { demandNumber: { $regex: searchTerm, $options: 'i' } },
+                { title: { $regex: searchTerm, $options: 'i' } },
+                { description: { $regex: searchTerm, $options: 'i' } },
+                { createdBy: { $regex: searchTerm, $options: 'i' } },
+                { assignedTo: { $regex: searchTerm, $options: 'i' } }
+            ]
+        }
     }
 
     if (fromDate || toDate) {
@@ -255,18 +256,12 @@ export const assignDemand = asyncHandler(async (req, res) => {
 
     ensureStatus(demand, ['SUBMITTED', 'ASSIGNED'], 'Only submitted or already assigned demands can be assigned.')
 
-    if (demand.status === 'CLOSED' || demand.status === 'COMPLETED') {
-        throw new ApiError(400, 'Completed demands cannot be assigned.')
-    }
-
     const previousStatus = demand.status
     const previousAssignee = demand.assignedTo
 
     demand.assignedTo = assignedTo
     demand.assignedAt = demand.assignedAt || new Date()
-    if (demand.status === 'SUBMITTED') {
-        demand.status = 'ASSIGNED'
-    }
+    demand.status = 'ASSIGNED'
 
     await demand.save()
 
@@ -275,7 +270,7 @@ export const assignDemand = asyncHandler(async (req, res) => {
         action: 'ASSIGNED',
         performedBy,
         previousStatus,
-        newStatus: demand.status,
+        newStatus: 'ASSIGNED',
         notes: previousAssignee ? `Reassigned from ${previousAssignee} to ${assignedTo}.` : `Assigned to ${assignedTo}.`
     })
 
