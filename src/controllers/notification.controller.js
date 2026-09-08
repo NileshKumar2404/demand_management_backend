@@ -3,6 +3,7 @@ import { Notification } from '../models/notification.models.js'
 import { asyncHandler } from '../utils/AsyncHandler.js'
 import { ApiResponse } from '../utils/ApiResponse.js'
 import { ApiError } from '../utils/ApiError.js'
+import { sseService } from '../services/sse.service.js'
 
 export const getNotifications = asyncHandler(async (req, res) => {
     const { department, unreadOnly, limit = 50 } = req.query
@@ -73,7 +74,7 @@ export const markAllNotificationsRead = asyncHandler(async (req, res) => {
         filter.department = department
     }
 
-    const result = await Notification.updateMany(filter, {
+        const result = await Notification.updateMany(filter, {
         $set: { isRead: true }
     })
 
@@ -83,3 +84,8 @@ export const markAllNotificationsRead = asyncHandler(async (req, res) => {
         }, 'Notifications marked as read.')
     )
 })
+
+export const streamNotifications = (req, res) => {
+    sseService.addClient(req, res)
+}
+
