@@ -15,8 +15,6 @@ const departmentSchema = new mongoose.Schema({
     }
 }, { timestamps: true })
 
-departmentSchema.index({ name: 1 }, { unique: true })
-
 departmentSchema.set('toJSON', {
     transform: (_doc, ret) => {
         delete ret.__v
